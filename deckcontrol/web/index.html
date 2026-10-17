@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DeckControl</title>
+<style>
+:root{--bg:#0d1117;--p:#161b22;--p2:#21262d;--b:#30363d;--t:#e6edf3;--m:#8b949e;--a:#1f6feb;--g:#238636;--r:#da3633;--y:#ffcc33}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:14px/1.4 system-ui,Segoe UI,sans-serif}
+header{display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--p);border-bottom:1px solid var(--b);flex-wrap:wrap}
+h1{font-size:18px;margin:0 8px 0 0}.dot{width:10px;height:10px;border-radius:50%;background:var(--r);display:inline-block;margin-right:6px}.dot.on{background:var(--g)}
+select,input,textarea,button{background:var(--p2);color:var(--t);border:1px solid var(--b);border-radius:6px;padding:6px 9px;font:inherit}
+button{cursor:pointer}button:hover{border-color:var(--m)}button.pri{background:var(--a);border-color:var(--a)}button.dng{color:#ff7b72}
+button.sm{padding:2px 8px}textarea{width:100%;min-height:60px;font-family:ui-monospace,Consolas,monospace}
+input[type=color]{padding:0;width:42px;height:30px}input[type=range]{padding:0}
+main{display:grid;grid-template-columns:minmax(330px,420px) 1fr;gap:16px;padding:16px;max-width:1300px;margin:auto}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--p);border:1px solid var(--b);border-radius:10px;padding:14px;margin-bottom:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--m);margin:0 0 10px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tab{padding:4px 12px;border-radius:14px;background:var(--p2);cursor:pointer;border:1px solid var(--b)}.tab.on{background:var(--a);border-color:var(--a)}
+.deck{background:#05070a;border:2px solid #2b3139;border-radius:18px;padding:18px;width:max-content;max-width:100%;margin:auto}
+.keys{display:grid;grid-template-columns:repeat(3,96px);gap:12px}
+.key{width:96px;height:96px;border-radius:10px;border:3px solid transparent;cursor:pointer;background-size:cover;background-color:#111}
+.key.sel,.btn.sel,.knob.sel{border-color:var(--y)!important}.key.hit,.btn.hit,.knob.hit{box-shadow:0 0 14px 4px var(--g)}
+.row{display:grid;grid-template-columns:repeat(3,96px);gap:12px;margin-top:14px}
+.btn{height:40px;border-radius:20px;background:#1c2128;border:3px solid #2b3139;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--m);font-size:12px;text-align:center;line-height:1.1}
+.knob{width:70px;height:70px;border-radius:50%;background:radial-gradient(#3a424d,#1c2128);border:3px solid #2b3139;margin:auto;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--m);font-size:12px}
+.knob.big{width:84px;height:84px}
+.f{display:grid;grid-template-columns:130px 1fr;gap:8px;align-items:center;margin-bottom:8px}.f label{color:var(--m)}
+.act{background:var(--p2);border:1px solid var(--b);border-radius:8px;padding:8px;margin-bottom:8px}
+.act .hd{display:flex;gap:6px;align-items:center;margin-bottom:6px}.act .hd b{flex:1}
+.hint{color:var(--m);font-size:12px}.emo{cursor:pointer;font-size:20px;padding:2px}.emo:hover{background:var(--p2);border-radius:4px}
+#log{font:12px ui-monospace,Consolas,monospace;height:150px;overflow:auto;background:#05070a;border-radius:6px;padding:8px}
+.err{color:#ff7b72}.k{color:var(--y)}
+.evtab{margin:10px 0 6px}
+.evtab span{margin-right:6px;padding:3px 10px;border-radius:12px;background:var(--p2);cursor:pointer;border:1px solid var(--b);display:inline-block;margin-bottom:4px}
+.evtab span.on{background:var(--a);border-color:var(--a)}
+dialog{background:var(--p);color:var(--t);border:1px solid var(--b);border-radius:10px;max-width:560px;width:92%}
+dialog::backdrop{background:#000a}
+</style></head><body>
+<header>
+ <h1>⌨ DeckControl</h1>
+ <span id="status"><span class="dot" id="dot"></span><span id="stxt">…</span></span>
+ <span style="flex:1"></span>
+ Profile <select id="prof"></select>
+ <button id="pEdit" title="Rename, app-match, delete">⋯</button>
+ <button id="pNew">+ Profile</button>
+ 💡<input type="range" id="bri" min="5" max="100" style="width:100px">
+ <button id="pause">Pause</button>
+ <button id="settings">⚙ Settings</button>
+ <button id="reload" title="Reload plugins & templates">↻ Plugins</button>
+</header>
+<div id="axban" style="display:none;background:#5c1a1a;color:#fff;padding:10px 16px">⚠ macOS is blocking DeckControl from sending key presses and media keys. Enable <b>DeckControl</b> in System Settings → Privacy &amp; Security → <b>Accessibility</b> (and Input Monitoring), then quit and reopen the app. <button id="axb">Open Accessibility settings</button></div>
+<main>
+<div>
+ <div class="card">
+  <div class="tabs" id="pages"></div>
+  <div class="deck"><div class="keys" id="keys"></div><div class="row" id="plain"></div><div class="row" id="knobs" style="margin-top:18px"></div></div>
+  <p class="hint" style="text-align:center">Click any key, button or knob to edit it. Presses on the real device light up here.</p>
+ </div>
+ <div class="card"><h2>Live input</h2><div id="log"></div></div>
+</div>
+<div>
+ <div class="card" id="ed"><h2 id="edTitle">Select a control</h2><div id="edBody" class="hint">← pick something on the left</div></div>
+ <div class="card"><h2>Input mapping (if a button triggers the wrong slot)</h2>
+  <div class="hint" style="margin-bottom:8px">Click “Learn”, then press that physical control (or turn the knob that direction).</div>
+  <div id="learn"></div></div>
+ <div class="card"><h2>Extending</h2><div class="hint">
+  Drop <code>.py</code> plugins in <code>DeckControl-data/plugins</code> to add new actions, and <code>.json</code> files in <code>DeckControl-data/templates</code> to add templates. Then press <b>↻ Plugins</b>. See <code>plugins/example_plugin.py</code>.
+  <div id="perr" class="err"></div></div></div>
+</div>
+</main>
+<dialog id="dlg"></dialog>
+<script>
+const $=s=>document.querySelector(s);
+const api=(p,b)=>fetch('/api/'+p,{method:b===undefined?'GET':'POST',body:b===undefined?undefined:JSON.stringify(b)}).then(r=>{if(r.status===401&&p!=='login'){showLogin()}return r.json().catch(()=>({}))});
+let cfg,ACTS=[],TPL=[],ST={},sel=null,evsel='press',lastEv=0,saveT=null;
+const ACT=id=>ACTS.find(a=>a.id===id);
+const KEYS=['k1','k2','k3','k4','k5','k6'],PLAIN=['b7','b8','b9'],KNOBS=['e1','e2','e3'];
+const NAMES={b7:'Button 7',b8:'Button 8',b9:'Button 9',e1:'Knob 1',e2:'Knob 2',e3:'Knob 3'};
+const EMO='⏯ ⏮ ⏭ 🔊 🔉 🔇 🎤 🎧 🎵 🌐 📁 📋 📸 🔒 💡 🏠 ⚙ 🔥 ▶ ⏹ ⏺ 💬 📧 🎮 🖥 🔔 ⭐ ✅ ❌ ➡ ⬅ ⬆ ⬇ 🚀 🔍 ✂ 📌 🧰 💻'.split(' ');
+function prof(){return cfg.profiles[cfg.active_profile]}
+function pg(){return prof().pages[curPage]}
+let curPage='main';
+function ctrl(id,create){const c=pg().controls;if(!c[id]&&create)c[id]={events:{}};return c[id]}
+function save(){clearTimeout(saveT);saveT=setTimeout(async()=>{await api('config',cfg);},400)}
+function eventsFor(id){return id[0]==='e'?['press','cw','ccw','long']:['press','long','release']}
+
+async function init(){
+ const au=await fetch('/api/auth').then(r=>r.json());
+ if(!au.authed){return showLogin(au)}
+ [cfg,ACTS,TPL]=await Promise.all([api('config'),api('actions'),api('templates')]);
+ if(!cfg.profiles){return showLogin()}
+ ST=await api('state');curPage=ST.page;buildAll();poll();setInterval(poll,700);
+}
+async function showLogin(au){
+ if(window._sl)return;window._sl=1;
+ au=au||await fetch('/api/auth').then(r=>r.json());
+ if(au.authed){location.reload();return}
+ const setup=!au.configured;
+ document.body.innerHTML=`<div style="max-width:340px;margin:12vh auto;padding:24px" class="card"><h1 style="margin-bottom:14px">⌨ DeckControl</h1>
+ <p class="hint">${setup?(au.can_setup?'First run: create the login for this web UI.':'No password set yet. Open DeckControl from its tray icon on the PC it runs on to create one.'):'Sign in to continue.'}</p>
+ ${setup&&!au.can_setup?'':`<div class="f" style="grid-template-columns:1fr"><input id="lu" placeholder="Username" autocomplete="username" autofocus><input id="lp" type="password" placeholder="Password${setup?' (min 8 chars)':''}" autocomplete="${setup?'new-password':'current-password'}"><button class="pri" id="lb">${setup?'Create & sign in':'Sign in'}</button><div class="err" id="le"></div></div>`}</div>`;
+ const go=async()=>{const r=await fetch('/api/'+(setup?'setup':'login'),{method:'POST',body:JSON.stringify({user:$('#lu').value,pass:$('#lp').value})});
+  if(r.ok)location.reload();else $('#le').textContent=(await r.json()).error||'Failed'};
+ if($('#lb')){$('#lb').onclick=go;$('#lp').onkeydown=e=>{if(e.key==='Enter')go()}}
+}
+function buildAll(){buildHdr();buildPages();buildDeck();buildEd();buildLearn()}
+function buildHdr(){
+ $('#prof').innerHTML=Object.keys(cfg.profiles).map(n=>`<option ${n===cfg.active_profile?'selected':''}>${n}</option>`).join('');
+ $('#bri').value=cfg.brightness;
+ $('#perr').textContent=(ST.plugin_errors||[]).join('\n');
+}
+function pageNames(){const p=prof();const o=(p.page_order||[]).filter(n=>n in p.pages);Object.keys(p.pages).forEach(n=>{if(!o.includes(n))o.push(n)});return o}
+function buildPages(){
+ const el=$('#pages');el.innerHTML='';
+ pageNames().forEach(n=>{const t=document.createElement('div');t.className='tab'+(n===curPage?' on':'');t.textContent=n;
+  t.onclick=()=>{curPage=n;api('page',{name:n});buildAll()};
+  t.ondblclick=async()=>{const m=prompt('Rename page (empty = delete)',n);if(m===null)return;const p=prof();
+   if(m===''){if(Object.keys(p.pages).length>1){delete p.pages[n];p.page_order=pageNames().filter(x=>x!==n);curPage=pageNames()[0]}}
+   else if(m!==n&&!p.pages[m]){p.pages[m]=p.pages[n];delete p.pages[n];p.page_order=pageNames().map(x=>x===n?m:x);if(curPage===n)curPage=m}
+   save();buildAll()};
+  el.appendChild(t)});
+ const a=document.createElement('div');a.className='tab';a.textContent='+';a.onclick=()=>{const n=prompt('New page name');if(!n||prof().pages[n])return;prof().pages[n]={controls:{}};prof().page_order=pageNames().concat([n]);curPage=n;save();buildAll()};
+ el.appendChild(a);
+ const h=document.createElement('div');h.className='hint';h.style.width='100%';h.textContent='Double-click a page tab to rename / delete it.';el.appendChild(h);
+}
+async function prev(id,el){
+ const c=ctrl(id)||{};const r=await fetch('/api/preview',{method:'POST',body:JSON.stringify(c)});
+ el.style.backgroundImage=`url(${URL.createObjectURL(await r.blob())})`}
+function buildDeck(){
+ const K=$('#keys');K.innerHTML='';
+ KEYS.forEach((id,i)=>{const d=document.createElement('div');d.className='key'+(sel===id?' sel':'');d.id='c_'+id;d.onclick=()=>{sel=id;evsel='press';buildDeck();buildEd()};K.appendChild(d);prev(id,d)});
+ const P=$('#plain');P.innerHTML='';
+ PLAIN.forEach(id=>{const d=document.createElement('div');d.className='btn'+(sel===id?' sel':'');d.id='c_'+id;d.textContent=summ(id)||NAMES[id];d.onclick=()=>{sel=id;evsel='press';buildDeck();buildEd()};P.appendChild(d)});
+ const N=$('#knobs');N.innerHTML='';
+ KNOBS.forEach(id=>{const d=document.createElement('div');d.className='knob'+(id==='e2'?' big':'')+(sel===id?' sel':'');d.id='c_'+id;d.textContent=NAMES[id];d.onclick=()=>{sel=id;evsel=id[0]==='e'?'cw':'press';buildDeck();buildEd()};N.appendChild(d)});
+}
+function summ(id){const c=ctrl(id);if(!c)return '';const e=c.events||{};const n=Object.values(e).reduce((a,b)=>a+b.length,0);return c.label||(n?n+' action'+(n>1?'s':''):'')}
+
+function actRow(a,i,list){
+ const spec=ACT(a.type);const d=document.createElement('div');d.className='act';
+ let h=`<div class="hd"><b>${spec?spec.icon+' '+spec.label:'⚠ unknown: '+a.type}</b><button class="sm" data-u>↑</button><button class="sm" data-d>↓</button><button class="sm dng" data-x>✕</button></div>`;
+ if(spec&&spec.desc)h+=`<div class="hint">${spec.desc}</div>`;
+ d.innerHTML=h;
+ (spec?spec.params:[]).forEach(p=>{
+  const f=document.createElement('div');f.className='f';f.innerHTML=`<label>${p.label}</label>`;
+  const v=a.params&&p.name in a.params?a.params[p.name]:p.default;let inp;
+  if(p.type==='textarea'){inp=document.createElement('textarea');inp.value=v}
+  else if(p.type==='select'){inp=document.createElement('select');inp.innerHTML=p.options.map(o=>`<option ${o==v?'selected':''}>${o}</option>`).join('')}
+  else if(p.type==='bool'){inp=document.createElement('input');inp.type='checkbox';inp.checked=!!v}
+  else{inp=document.createElement('input');inp.type=p.type==='number'?'number':'text';inp.value=v}
+  inp.title=p.help||'';
+  inp.oninput=inp.onchange=()=>{a.params=a.params||{};a.params[p.name]=p.type==='bool'?inp.checked:p.type==='number'?Number(inp.value):inp.value;save()};
+  f.appendChild(inp);d.appendChild(f)});
+ d.querySelector('[data-x]').onclick=()=>{list.splice(i,1);save();buildEd();buildDeck()};
+ d.querySelector('[data-u]').onclick=()=>{if(i>0){[list[i-1],list[i]]=[list[i],list[i-1]];save();buildEd()}};
+ d.querySelector('[data-d]').onclick=()=>{if(i<list.length-1){[list[i+1],list[i]]=[list[i],list[i+1]];save();buildEd()}};
+ return d}
+
+function buildEd(){
+ const B=$('#edBody');
+ if(!sel){return}
+ const isKey=sel[0]==='k';const c=ctrl(sel,true);c.events=c.events||{};
+ $('#edTitle').textContent=(isKey?'Key '+sel.slice(1)+' (display)':NAMES[sel])+' — page “'+curPage+'”';
+ B.className='';B.innerHTML='';
+ if(isKey){
+  const f=(l,el)=>{const d=document.createElement('div');d.className='f';d.innerHTML=`<label>${l}</label>`;d.appendChild(el);B.appendChild(d)};
+  const mk=(t,k,type='text')=>{const i=document.createElement('input');i.type=type;i.value=c[k]||(type==='color'?(k==='bg'?'#1b1f2a':'#ffffff'):'');i.oninput=()=>{c[k]=i.value;save();clearTimeout(window._pt);window._pt=setTimeout(()=>{prev(sel,$('#c_'+sel));api('redraw',{})},500)};return i};
+  f('Label (2 lines ok)',mk('l','label'));
+  const ic=mk('i','icon');f('Icon / emoji',ic);
+  const ep=document.createElement('div');ep.style.cssText='margin:-4px 0 8px 138px';ep.innerHTML=EMO.map(e=>`<span class="emo">${e}</span>`).join('');
+  ep.onclick=e=>{if(e.target.className==='emo'){c.icon=e.target.textContent;ic.value=c.icon;ic.oninput()}};B.appendChild(ep);
+  f('Background',mk('b','bg','color'));f('Text colour',mk('t','fg','color'));
+  const im=document.createElement('div');im.innerHTML=`<input type="file" accept="image/*" id="up"> <button class="sm" id="clrimg">remove</button> <span class="hint">${c.image||''}</span>`;f('Custom image',im);
+  const ft=document.createElement('select');ft.innerHTML=['fit|Fit inside (keep ratio)','fill|Fill key (crop)','stretch|Stretch'].map(o=>{const [v,l]=o.split('|');return `<option value="${v}" ${(c.fit||'fit')===v?'selected':''}>${l}</option>`}).join('');
+  ft.onchange=()=>{c.fit=ft.value;save();clearTimeout(window._pt);window._pt=setTimeout(()=>{prev(sel,$('#c_'+sel));api('redraw',{})},500)};f('Image fit',ft);
+  im.querySelector('#up').onchange=e=>{const fl=e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=async()=>{const x=await api('upload',{name:fl.name,data:r.result});c.image=x.name;save();buildEd();prev(sel,$('#c_'+sel));api('redraw',{})};r.readAsDataURL(fl)};
+  im.querySelector('#clrimg').onclick=()=>{delete c.image;save();buildEd();prev(sel,$('#c_'+sel));api('redraw',{})};
+ }
+ // templates
+ const tp=document.createElement('div');tp.className='f';tp.innerHTML='<label>Template</label>';
+ const ts=document.createElement('select');ts.innerHTML='<option value="">Apply a template…</option>'+TPL.filter(t=>!t.for||t.for==='any'||(t.for==='key')===isKey&&(t.for==='knob')===!isKey||t.for==='button'&&!isKey&&sel[0]==='b'||t.for==='knob'&&sel[0]==='e'||t.for==='key'&&isKey).map((t,i)=>`<option value="${TPL.indexOf(t)}">${t.name}${t.description?' — '+t.description:''}</option>`).join('');
+ ts.onchange=()=>{if(ts.value==='')return;const t=JSON.parse(JSON.stringify(TPL[ts.value].control||{}));const keep=pg().controls[sel];pg().controls[sel]=Object.assign({events:{}},t);save();buildAll();api('redraw',{})};
+ tp.appendChild(ts);B.appendChild(tp);
+ // events
+ const evs=eventsFor(sel);if(!evs.includes(evsel))evsel=evs[0];
+ const et=document.createElement('div');et.className='evtab';
+ const lbl={press:'Press',long:'Long press',release:'Release',cw:'Turn → (clockwise)',ccw:'Turn ← (counter-clockwise)'};
+ evs.forEach(e=>{const s=document.createElement('span');s.className=e===evsel?'on':'';const n=(c.events[e]||[]).length;s.textContent=lbl[e]+(n?` (${n})`:'');s.onclick=()=>{evsel=e;buildEd()};et.appendChild(s)});
+ B.appendChild(et);
+ const list=c.events[evsel]=c.events[evsel]||[];
+ list.forEach((a,i)=>B.appendChild(actRow(a,i,list)));
+ const ad=document.createElement('div');ad.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+ const as=document.createElement('select');as.innerHTML='<option value="">+ Add action…</option>'+Object.entries(ACTS.reduce((g,a)=>((g[a.category]=g[a.category]||[]).push(a),g),{})).map(([k,v])=>`<optgroup label="${k}">${v.map(a=>`<option value="${a.id}">${a.icon} ${a.label}</option>`).join('')}</optgroup>`).join('');
+ as.onchange=()=>{if(!as.value)return;const s=ACT(as.value);list.push({type:s.id,params:Object.fromEntries(s.params.map(p=>[p.name,p.default]))});save();buildEd();buildDeck()};
+ const tb=document.createElement('button');tb.textContent='▶ Test';tb.onclick=()=>api('test',{actions:list});
+ const sv=document.createElement('button');sv.textContent='Save as template…';sv.onclick=async()=>{const n=prompt('Template name');if(!n)return;await api('save_template',{name:n,for:isKey?'key':sel[0]==='e'?'knob':'button',control:c});TPL=await api('templates');buildEd()};
+ const cl=document.createElement('button');cl.className='dng';cl.textContent='Clear control';cl.onclick=()=>{if(confirm('Clear this control?')){delete pg().controls[sel];save();buildAll();api('redraw',{})}};
+ ad.append(as,tb,sv,cl);B.appendChild(ad);
+}
+const LEARN=[...KEYS.map(k=>[k,k.replace('k','Key ')]),...PLAIN.map(k=>[k,NAMES[k]]),...KNOBS.flatMap(k=>[[k+'.press',NAMES[k]+' press'],[k+'.cw',NAMES[k]+' →'],[k+'.ccw',NAMES[k]+' ←']])];
+function buildLearn(){
+ $('#learn').innerHTML=LEARN.map(([t,n])=>`<button class="sm" data-t="${t}" style="margin:2px">${n}${ST.learn===t?' …press now':''}</button>`).join('')+'<div style="margin-top:8px"><button class="sm dng" id="rst">Reset mapping to default</button></div>';
+ $('#learn').onclick=e=>{const t=e.target.dataset&&e.target.dataset.t;if(t){api('learn',{target:t})}};
+ $('#rst').onclick=()=>{cfg.input_map={};save()};
+}
+async function poll(){
+ try{ST=await api('state');
+  $('#dot').className='dot'+(ST.device?' on':'');$('#stxt').textContent=ST.status+(ST.paused?' (paused)':'');$('#pause').textContent=ST.paused?'Resume':'Pause';$('#axban').style.display=ST.accessibility===false?'block':'none';
+  $('#perr').textContent=(ST.plugin_errors||[]).join('\n');
+  if(ST.profile!==cfg.active_profile){cfg.active_profile=ST.profile;curPage=ST.page;buildAll()}
+  else if(ST.page!==curPage&&document.activeElement.tagName!=='INPUT'){curPage=ST.page;buildAll()}
+  const ev=await api('events?since='+lastEv);
+  if(ev.length){const L=$('#log');ev.forEach(e=>{lastEv=e.id;const d=document.createElement('div');d.className=e.kind==='error'?'err':'';d.innerHTML=`<span class="k">${e.t}</span> ${e.text}`;L.appendChild(d);
+    if(e.kind==='event'){const el=$('#c_'+e.text.split('.')[0]);if(el){el.classList.add('hit');setTimeout(()=>el.classList.remove('hit'),250)}}
+    if(e.kind==='learn')buildLearn()});L.scrollTop=L.scrollHeight}
+  if(ST.learn)buildLearn();
+ }catch(e){}
+}
+$('#prof').onchange=async()=>{await api('profile',{name:$('#prof').value});cfg.active_profile=$('#prof').value;curPage=pageNames()[0];buildAll()};
+$('#bri').oninput=()=>{cfg.brightness=+$('#bri').value;api('brightness',{value:cfg.brightness})};
+$('#pause').onclick=()=>api('pause',{paused:!ST.paused});
+$('#reload').onclick=async()=>{await api('reload',{});[ACTS,TPL]=await Promise.all([api('actions'),api('templates')]);buildEd();poll()};
+$('#pNew').onclick=()=>{const n=prompt('New profile name');if(!n||cfg.profiles[n])return;cfg.profiles[n]={match:'',page_order:['main'],pages:{main:{controls:{}}}};save();api('config',cfg).then(()=>api('profile',{name:n}));cfg.active_profile=n;curPage='main';buildAll()};
+$('#pEdit').onclick=()=>{
+ const p=prof(),n=cfg.active_profile,d=$('#dlg');
+ d.innerHTML=`<h3>Profile “${n}”</h3><div class="f"><label>Name</label><input id="dn" value="${n}"></div>
+ <div class="f"><label>Auto-activate for apps</label><input id="dm" value="${p.match||''}" placeholder="chrome.exe, code.exe"></div>
+ <p class="hint">Comma separated process names (macOS: app names). The profile switches automatically when one of them is in front.</p>
+ <div style="display:flex;gap:8px"><button class="pri" id="ok">Save</button><button id="no">Cancel</button><span style="flex:1"></span><button class="dng" id="del">Delete profile</button></div>`;
+ d.showModal();
+ $('#no').onclick=()=>d.close();
+ $('#ok').onclick=()=>{p.match=$('#dm').value;const nn=$('#dn').value.trim();if(nn&&nn!==n&&!cfg.profiles[nn]){cfg.profiles[nn]=p;delete cfg.profiles[n];cfg.active_profile=nn}save();d.close();buildAll()};
+ $('#del').onclick=()=>{if(Object.keys(cfg.profiles).length<2)return alert('Keep at least one profile');delete cfg.profiles[n];cfg.active_profile=Object.keys(cfg.profiles)[0];curPage=pageNames()[0];save();d.close();buildAll()};
+};
+$('#settings').onclick=async()=>{
+ const n=await api('net'),d=$('#dlg');
+ d.innerHTML=`<h3>Settings</h3>
+ <h4>Network access</h4>
+ <div class="f"><label>Listen on</label><select id="nb"><option value="127.0.0.1" ${n.bind==='127.0.0.1'?'selected':''}>This PC only (127.0.0.1)</option><option value="0.0.0.0" ${n.bind==='0.0.0.0'?'selected':''}>All interfaces (0.0.0.0) – reachable from the network</option></select></div>
+ <div class="f"><label>Port</label><input id="np" type="number" value="${n.port}"></div>
+ <p class="hint">Currently listening on ${n.active_bind}:${n.active_port}. Changes apply after restarting DeckControl (tray → Quit, start again). Traffic is plain HTTP: use it on a trusted LAN, or put it behind a VPN / HTTPS reverse proxy. A password is required for network access.</p>
+ ${n.warning?`<p class="err">${n.warning}</p>`:''}
+ <h4>Login</h4>
+ <div class="f"><label>Username</label><input id="au" value="${n.user||''}"></div>
+ ${n.configured?'<div class="f"><label>Current password</label><input id="ao" type="password"></div>':''}
+ <div class="f"><label>New password</label><input id="ap" type="password" placeholder="min 8 characters"></div>
+ <div id="sm" class="hint"></div>
+ <div style="display:flex;gap:8px"><button class="pri" id="ok">Save</button><button id="no">Close</button><span style="flex:1"></span><button id="lo">Log out</button></div>`;
+ d.showModal();$('#no').onclick=()=>d.close();
+ $('#lo').onclick=async()=>{await api('logout',{});location.reload()};
+ $('#ok').onclick=async()=>{let m='';
+  if($('#ap').value){const r=await api('password',{user:$('#au').value,old:$('#ao')?$('#ao').value:'',pass:$('#ap').value});if(r.error){$('#sm').textContent=r.error;return}m+='Password updated. '}
+  const r=await api('net',{bind:$('#nb').value,port:+$('#np').value});if(r.error){$('#sm').textContent=r.error;return}
+  $('#sm').textContent=m+'Saved – restart DeckControl for network changes to take effect.'};
+};
+$('#axb').onclick=()=>api('open_accessibility',{});
+init();
+</script></body></html>

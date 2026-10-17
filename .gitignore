@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+*.spec
+DeckControl-data/
+*.tgz
+jar*
+t_key.png
