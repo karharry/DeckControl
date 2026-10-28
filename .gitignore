@@ -8,3 +8,4 @@ DeckControl-data/
 *.tgz
 jar*
 t_key.png
+.venv312/

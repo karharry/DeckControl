@@ -5,6 +5,26 @@ import webbrowser
 from . import paths
 
 
+def _autostart(enable=None):
+    """Windows login item (HKCU Run). No arg: query; True/False: set. Only meaningful for the packaged exe."""
+    import winreg
+    key, name = r"Software\Microsoft\Windows\CurrentVersion\Run", "DeckControl"
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key, 0, winreg.KEY_ALL_ACCESS) as k:
+        if enable is None:
+            try:
+                winreg.QueryValueEx(k, name)
+                return True
+            except FileNotFoundError:
+                return False
+        if enable:
+            winreg.SetValueEx(k, name, 0, winreg.REG_SZ, '"%s" --minimized' % sys.executable)
+        else:
+            try:
+                winreg.DeleteValue(k, name)
+            except FileNotFoundError:
+                pass
+
+
 def main():
     paths.ensure()
     from .engine import Engine
@@ -34,10 +54,13 @@ def main():
         def pause(icon, item):
             engine.paused = not engine.paused
 
-        menu = pystray.Menu(
+        items = [
             pystray.MenuItem("Open DeckControl", lambda i, it: webbrowser.open(url), default=True),
-            pystray.MenuItem("Pause actions", pause, checked=lambda it: engine.paused),
-            pystray.MenuItem("Quit", lambda i, it: i.stop()))
+            pystray.MenuItem("Pause actions", pause, checked=lambda it: engine.paused)]
+        if sys.platform == "win32":
+            items.append(pystray.MenuItem("Start with Windows", lambda i, it: _autostart(not _autostart()),
+                                          checked=lambda it: _autostart()))
+        menu = pystray.Menu(*items, pystray.MenuItem("Quit", lambda i, it: i.stop()))
         pystray.Icon("DeckControl", im, "DeckControl", menu).run()
     except Exception as e:  # headless fallback
         print("(no tray icon: %s) – press Ctrl+C to quit" % e)
