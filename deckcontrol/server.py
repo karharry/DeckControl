@@ -182,6 +182,12 @@ def make_server(engine, port):
                                         "can_setup": (not auth.configured) and self._local()})
             if not self._authed():
                 return self._send(401, {"error": "unauthorized"})
+            if u.path.startswith("/api/image/"):
+                fn = os.path.join(paths.IMAGES, os.path.basename(u.path))
+                if os.path.isfile(fn):
+                    with open(fn, "rb") as f:
+                        return self._send(200, f.read(), "image/png")
+                return self._send(404, {"error": "not found"})
             if u.path == "/api/state":
                 return self._send(200, engine.state())
             if u.path == "/api/config":

@@ -18,6 +18,7 @@ main{display:grid;grid-template-columns:minmax(330px,420px) 1fr;gap:16px;padding
 .deck{background:#05070a;border:2px solid #2b3139;border-radius:18px;padding:18px;width:max-content;max-width:100%;margin:auto}
 .keys{display:grid;grid-template-columns:repeat(3,96px);gap:12px}
 .key{width:96px;height:96px;border-radius:10px;border:3px solid transparent;cursor:pointer;background-size:cover;background-color:#111}
+.ctx{position:fixed;z-index:50;background:var(--p2);border:1px solid var(--b);border-radius:6px;padding:4px 0;min-width:170px;box-shadow:0 6px 20px #0008}.ctx div{padding:6px 14px;cursor:pointer}.ctx div:hover{background:var(--b)}.ctx .off{opacity:.4;cursor:default}
 .key.sel,.btn.sel,.knob.sel{border-color:var(--y)!important}.key.hit,.btn.hit,.knob.hit{box-shadow:0 0 14px 4px var(--g)}
 .row{display:grid;grid-template-columns:repeat(3,96px);gap:12px;margin-top:14px}
 .btn{height:40px;border-radius:20px;background:#1c2128;border:3px solid #2b3139;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--m);font-size:12px;text-align:center;line-height:1.1}
@@ -75,7 +76,7 @@ let cfg,ACTS=[],TPL=[],ST={},sel=null,evsel='press',lastEv=0,saveT=null;
 const ACT=id=>ACTS.find(a=>a.id===id);
 const KEYS=['k1','k2','k3','k4','k5','k6'],PLAIN=['b7','b8','b9'],KNOBS=['e1','e2','e3'];
 const NAMES={b7:'Button 7',b8:'Button 8',b9:'Button 9',e1:'Knob 1',e2:'Knob 2',e3:'Knob 3'};
-const EMO='⏯ ⏮ ⏭ 🔊 🔉 🔇 🎤 🎧 🎵 🌐 📁 📋 📸 🔒 💡 🏠 ⚙ 🔥 ▶ ⏹ ⏺ 💬 📧 🎮 🖥 🔔 ⭐ ✅ ❌ ➡ ⬅ ⬆ ⬇ 🚀 🔍 ✂ 📌 🧰 💻'.split(' ');
+const EMO='⏯ ⏮ ⏭ 🔊 🔉 🔇 🎤 🎧 🎵 🌐 📁 📋 📸 🔒 💡 🏠 ⚙ 🔥 ▶ ⏹ ⏺ 💬 📧 🎮 🖥 📺 🔔 ⭐ ✅ ❌ ➡ ⬅ ⬆ ⬇ 🚀 🔍 ✂ 📌 🧰 💻'.split(' ');
 function prof(){return cfg.profiles[cfg.active_profile]}
 function pg(){return prof().pages[curPage]}
 let curPage='main';
@@ -127,11 +128,27 @@ async function prev(id,el){
  el.style.backgroundImage=`url(${URL.createObjectURL(await r.blob())})`}
 function buildDeck(){
  const K=$('#keys');K.innerHTML='';
- KEYS.forEach((id,i)=>{const d=document.createElement('div');d.className='key'+(sel===id?' sel':'');d.id='c_'+id;d.onclick=()=>{sel=id;evsel='press';buildDeck();buildEd()};K.appendChild(d);prev(id,d)});
+ KEYS.forEach((id,i)=>{const d=document.createElement('div');d.className='key'+(sel===id?' sel':'');d.id='c_'+id;d.oncontextmenu=e=>ctxMenu(e,id);d.onclick=()=>{sel=id;evsel='press';buildDeck();buildEd()};K.appendChild(d);prev(id,d)});
  const P=$('#plain');P.innerHTML='';
- PLAIN.forEach(id=>{const d=document.createElement('div');d.className='btn'+(sel===id?' sel':'');d.id='c_'+id;d.textContent=summ(id)||NAMES[id];d.onclick=()=>{sel=id;evsel='press';buildDeck();buildEd()};P.appendChild(d)});
+ PLAIN.forEach(id=>{const d=document.createElement('div');d.className='btn'+(sel===id?' sel':'');d.id='c_'+id;d.textContent=summ(id)||NAMES[id];d.oncontextmenu=e=>ctxMenu(e,id);d.onclick=()=>{sel=id;evsel='press';buildDeck();buildEd()};P.appendChild(d)});
  const N=$('#knobs');N.innerHTML='';
- KNOBS.forEach(id=>{const d=document.createElement('div');d.className='knob'+(id==='e2'?' big':'')+(sel===id?' sel':'');d.id='c_'+id;d.textContent=NAMES[id];d.onclick=()=>{sel=id;evsel=id[0]==='e'?'cw':'press';buildDeck();buildEd()};N.appendChild(d)});
+ KNOBS.forEach(id=>{const d=document.createElement('div');d.className='knob'+(id==='e2'?' big':'')+(sel===id?' sel':'');d.id='c_'+id;d.textContent=NAMES[id];d.oncontextmenu=e=>ctxMenu(e,id);d.onclick=()=>{sel=id;evsel=id[0]==='e'?'cw':'press';buildDeck();buildEd()};N.appendChild(d)});
+}
+let clip=null;
+function ctxMenu(e,id){
+ e.preventDefault();document.querySelectorAll('.ctx').forEach(m=>m.remove());
+ const m=document.createElement('div');m.className='ctx';
+ const item=(t,fn,off)=>{const b=document.createElement('div');b.textContent=t;if(off)b.className='off';else b.onclick=()=>{m.remove();fn()};m.appendChild(b)};
+ const cur=ctrl(id);
+ item('Copy',()=>{clip=JSON.parse(JSON.stringify(cur||{events:{}}));clip._from=id},!cur);
+ const paste=look=>{const t=ctrl(id,true),ok=eventsFor(id);t.events={};
+  Object.entries(clip.events||{}).forEach(([k,v])=>{if(ok.includes(k))t.events[k]=JSON.parse(JSON.stringify(v))});
+  if(look)['label','icon','bg','fg','image','fit'].forEach(k=>{if(clip[k]===undefined)delete t[k];else t[k]=clip[k]});
+  save();buildDeck();buildEd();api('redraw',{})};
+ item('Paste actions',()=>paste(false),!clip);
+ item('Paste actions + look',()=>paste(true),!clip);
+ m.style.left=e.clientX+'px';m.style.top=e.clientY+'px';document.body.appendChild(m);
+ setTimeout(()=>document.addEventListener('click',()=>m.remove(),{once:true}),0);
 }
 function summ(id){const c=ctrl(id);if(!c)return '';const e=c.events||{};const n=Object.values(e).reduce((a,b)=>a+b.length,0);return c.label||(n?n+' action'+(n>1?'s':''):'')}
 
@@ -166,13 +183,14 @@ function buildEd(){
   const mk=(t,k,type='text')=>{const i=document.createElement('input');i.type=type;i.value=c[k]||(type==='color'?(k==='bg'?'#1b1f2a':'#ffffff'):'');i.oninput=()=>{c[k]=i.value;save();clearTimeout(window._pt);window._pt=setTimeout(()=>{prev(sel,$('#c_'+sel));api('redraw',{})},500)};return i};
   f('Label (2 lines ok)',mk('l','label'));
   const ic=mk('i','icon');f('Icon / emoji',ic);
-  const ep=document.createElement('div');ep.style.cssText='margin:-4px 0 8px 138px';ep.innerHTML=EMO.map(e=>`<span class="emo">${e}</span>`).join('');
-  ep.onclick=e=>{if(e.target.className==='emo'){c.icon=e.target.textContent;ic.value=c.icon;ic.oninput()}};B.appendChild(ep);
+  const ep=document.createElement('div');ep.style.cssText='margin:-4px 0 8px 138px';ep.innerHTML=EMO.map(e=>`<span class="emo">${e}</span>`).join('')+'<img class="emo" data-img="home-assistant.png" title="Home Assistant" src="/api/image/home-assistant.png" width="22" height="22" style="vertical-align:middle">';
+  ep.onclick=e=>{if(e.target.dataset.img){c.image=e.target.dataset.img;save();buildEd();prev(sel,$('#c_'+sel));api('redraw',{});return}if(e.target.className==='emo'){c.icon=e.target.textContent;ic.value=c.icon;ic.oninput()}};B.appendChild(ep);
   f('Background',mk('b','bg','color'));f('Text colour',mk('t','fg','color'));
-  const im=document.createElement('div');im.innerHTML=`<input type="file" accept="image/*" id="up"> <button class="sm" id="clrimg">remove</button> <span class="hint">${c.image||''}</span>`;f('Custom image',im);
+  const im=document.createElement('div');im.innerHTML=`<input type="file" accept="image/*" id="up"> <button class="sm" id="clrimg">remove</button> <button class="sm" id="haimg" title="Home Assistant logo">🏠 Home Assistant logo</button> <span class="hint">${c.image||''}</span>`;f('Custom image',im);
   const ft=document.createElement('select');ft.innerHTML=['fit|Fit inside (keep ratio)','fill|Fill key (crop)','stretch|Stretch'].map(o=>{const [v,l]=o.split('|');return `<option value="${v}" ${(c.fit||'fit')===v?'selected':''}>${l}</option>`}).join('');
   ft.onchange=()=>{c.fit=ft.value;save();clearTimeout(window._pt);window._pt=setTimeout(()=>{prev(sel,$('#c_'+sel));api('redraw',{})},500)};f('Image fit',ft);
   im.querySelector('#up').onchange=e=>{const fl=e.target.files[0];if(!fl)return;const r=new FileReader();r.onload=async()=>{const x=await api('upload',{name:fl.name,data:r.result});c.image=x.name;save();buildEd();prev(sel,$('#c_'+sel));api('redraw',{})};r.readAsDataURL(fl)};
+  im.querySelector('#haimg').onclick=()=>{c.image='home-assistant.png';save();buildEd();prev(sel,$('#c_'+sel));api('redraw',{})};
   im.querySelector('#clrimg').onclick=()=>{delete c.image;save();buildEd();prev(sel,$('#c_'+sel));api('redraw',{})};
  }
  // templates

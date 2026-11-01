@@ -35,7 +35,7 @@ def ensure():
     for d in (DATA, PLUGINS, TEMPLATES, IMAGES):
         os.makedirs(d, exist_ok=True)
     seed = os.path.join(resource_dir(), "seed")
-    for sub, dst in (("plugins", PLUGINS), ("templates", TEMPLATES)):
+    for sub, dst in (("plugins", PLUGINS), ("templates", TEMPLATES), ("images", IMAGES)):
         src = os.path.join(seed, sub)
         if os.path.isdir(src):
             for f in os.listdir(src):

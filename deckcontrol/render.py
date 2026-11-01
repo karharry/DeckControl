@@ -68,6 +68,7 @@ def render_key(ctrl, active=False):
         try:
             pic = Image.open(p).convert("RGBA")
             fit = ctrl.get("fit") or "fit"
+            has_label = False
             if fit == "stretch":
                 pic = pic.resize((S, S), Image.LANCZOS)
             elif fit == "fill":
@@ -75,8 +76,10 @@ def render_key(ctrl, active=False):
                 pic = pic.resize((max(S, round(pic.width * sc)), max(S, round(pic.height * sc))), Image.LANCZOS)
                 pic = pic.crop(((pic.width - S) // 2, (pic.height - S) // 2, (pic.width + S) // 2, (pic.height + S) // 2))
             else:
-                pic.thumbnail((S, S), Image.LANCZOS)
-            im.paste(pic, ((S - pic.width) // 2, (S - pic.height) // 2), pic)
+                has_label = bool((ctrl.get("label") or "").strip())
+                pic.thumbnail((S - 24, S - 70) if has_label else (S, S), Image.LANCZOS)  # leave room for the label
+            y = 12 if fit == "fit" and has_label else (S - pic.height) // 2
+            im.paste(pic, ((S - pic.width) // 2, y), pic)
         except Exception:
             pass
     d = ImageDraw.Draw(im)
