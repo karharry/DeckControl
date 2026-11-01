@@ -9,13 +9,21 @@ import io
 import threading
 import time
 
-try:
-    import hid
-except Exception as e:  # pragma: no cover
-    hid = None
-    HID_ERROR = str(e)
-else:
-    HID_ERROR = ""
+import sys
+
+hid = None
+HID_ERROR = ""
+if sys.platform.startswith("linux"):
+    try:
+        from . import hidraw as hid  # system hidraw backend: no root-only USB access needed
+    except Exception as e:  # pragma: no cover
+        HID_ERROR = str(e)
+if hid is None:
+    try:
+        import hid
+    except Exception as e:  # pragma: no cover
+        hid = None
+        HID_ERROR = str(e)
 
 from PIL import Image
 

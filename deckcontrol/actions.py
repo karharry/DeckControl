@@ -15,11 +15,37 @@ MAC = sys.platform == "darwin"
 _kb = None
 
 
+class _Keyboard:
+    """pynput controller; on Linux, key presses go through uinput when available (works on Wayland)."""
+
+    def __init__(self):
+        from pynput.keyboard import Controller
+        self.c = Controller()
+        self.u = None
+        if sys.platform.startswith("linux"):
+            try:
+                from . import uinput
+                self.u = uinput.Keyboard()
+            except Exception:
+                self.u = None
+
+    def _be(self, k):
+        return self.u if self.u and self.u.supports(k) else self.c
+
+    def press(self, k):
+        self._be(k).press(k)
+
+    def release(self, k):
+        self._be(k).release(k)
+
+    def type(self, text):
+        self.c.type(text)
+
+
 def kb():
     global _kb
     if _kb is None:
-        from pynput.keyboard import Controller
-        _kb = Controller()
+        _kb = _Keyboard()
     return _kb
 
 

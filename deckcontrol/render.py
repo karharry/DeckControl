@@ -18,8 +18,12 @@ def _font_files(emoji=False):
     if sys.platform == "darwin":
         return (["/System/Library/Fonts/Apple Color Emoji.ttc"] if emoji else
                 ["/System/Library/Fonts/Helvetica.ttc", "/System/Library/Fonts/SFNS.ttf"])
-    return (["/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"] if emoji else
-            ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"])
+    home = os.path.expanduser("~/.local/share/fonts/")
+    if emoji:  # PIL needs a bitmap (CBDT) colour font; COLRv1 builds render blank
+        return [home + "NotoColorEmoji.ttf", "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
+                "/usr/share/fonts/noto-emoji/NotoColorEmoji.ttf", "/usr/share/fonts/google-noto-color-emoji-fonts/NotoColorEmoji.ttf"]
+    return ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/google-noto/NotoSans-Bold.ttf", "/usr/share/fonts/google-droid-sans-fonts/DroidSans-Bold.ttf"]
 
 
 def font(size, emoji=False):

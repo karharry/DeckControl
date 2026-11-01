@@ -1,11 +1,12 @@
 # DeckControl – open, portable controller software for the Ajazz AKP03E
 
-Works with AKP03 / AKP03E / AKP03R (both hardware revisions) and Mirabox N3 clones.
+Works with AKP03 / AKP03E / AKP03R (both hardware revisions) and Mirabox N3 clones, on Windows, macOS and Linux.
 
 ## Run
 * **Windows:** double-click `DeckControl.exe` (tray icon appears, editor opens in your browser).
 * **Mac:** run `DeckControl` (build it with `./build_mac.sh`, or download the artifact from the GitHub Actions workflow in `.github/workflows`).
   First launch: right-click → Open (unsigned app); allow *Accessibility* and *Input Monitoring* in System Settings → Privacy & Security so key presses can be sent.
+* **Linux:** run `./install_linux.sh`. It installs to `~/.local/opt/DeckControl`, adds a *DeckControl* entry to the application menu and starts it. Requirements: `python3` with PyGObject (`gi`) and `libhidapi-hidraw`, and a tray that supports StatusNotifier/AppIndicator (KDE works out of the box; GNOME needs the AppIndicator extension). Keyboard shortcuts and media keys are sent through `/dev/uinput`, so they work on Wayland; your user needs write access to it (the default desktop ACL grants this). The tray menu has *Start at login* and *Open editor on launch*.
 * Everything is portable: settings, plugins, templates and images live in `DeckControl-data/` next to the program. Copy the folder to move your setup.
 * Close the vendor app first – only one program can talk to the device.
 
