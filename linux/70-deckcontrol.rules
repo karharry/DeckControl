@@ -1,0 +1,29 @@
+# DeckControl: let the logged-in user open the controller (hidraw) and send key presses (uinput).
+# Installed to /etc/udev/rules.d/70-deckcontrol.rules by install_linux.sh. To support another model add a line
+# with its USB vendor/product id (see `lsusb`) and also add it to KNOWN in deckcontrol/device.py.
+
+# Ajazz AKP03
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0300", ATTRS{idProduct}=="1001", TAG+="uaccess", MODE="0660"
+# Ajazz AKP03E
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0300", ATTRS{idProduct}=="1002", TAG+="uaccess", MODE="0660"
+# Ajazz AKP03R
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0300", ATTRS{idProduct}=="1003", TAG+="uaccess", MODE="0660"
+# Ajazz AKP03E (rev 2)
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0300", ATTRS{idProduct}=="3002", TAG+="uaccess", MODE="0660"
+# Ajazz AKP03R (rev 2)
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0300", ATTRS{idProduct}=="3003", TAG+="uaccess", MODE="0660"
+# Mirabox N3
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="6602", ATTRS{idProduct}=="1000", TAG+="uaccess", MODE="0660"
+# Mirabox N3
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="6602", ATTRS{idProduct}=="1002", TAG+="uaccess", MODE="0660"
+# Mirabox N3
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="6603", ATTRS{idProduct}=="1002", TAG+="uaccess", MODE="0660"
+# Mirabox N3
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="6603", ATTRS{idProduct}=="1003", TAG+="uaccess", MODE="0660"
+# Soomfon SE
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1500", ATTRS{idProduct}=="3001", TAG+="uaccess", MODE="0660"
+# TreasLin N3
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="5548", ATTRS{idProduct}=="1001", TAG+="uaccess", MODE="0660"
+
+# virtual keyboard used for shortcuts and media keys (works on Wayland)
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"
